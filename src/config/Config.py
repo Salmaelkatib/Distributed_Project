@@ -1,7 +1,7 @@
 class Config:
-        playersNumer = 1
+        playersNumer = 2
         FPS = 100
-        labs = 1 + 1 #Liczone od zera!
+        labs = 1 + 1
         line = {
             'positon': {
                 'start': (502, 160)
