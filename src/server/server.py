@@ -5,14 +5,17 @@ import socket
 import threading
 import _pickle as pickle
 
+
 import pygame
+
+from src.server.database import firebase
 
 from src.config.Config import Config
 from src.server.game import Game , IntializeGame
 from src.server.player import Player
 from src.server.clientInfo import ClientInfo
 
-
+db=firebase.database()
 class server:
 
     clients_list = []
@@ -72,6 +75,8 @@ class server:
         data = conn.recv(16)
         name = data.decode("utf-8")
         print("[LOG]", name, "connected to the server.")
+        #search db for same ip if found then create new player , get all db info regarding player , assign values
+
         player = Player(self.game, self, self.init, self.config, _id, None, self.config.player['speed'],
                         self.config.player['turn'])
 
@@ -80,7 +85,28 @@ class server:
                                  player.acceleration, player.breaks, player.turn, player.lab, player.rect, 0,
                                  self.game.showTimer, self.game.positionTimer, self.win, self.winner,
                                  self.init.connections)
+        data = {
+            "id": player.id,
+            "position": player.position,
+            "angle": player.angle,
+            "speed": player.speed,
+            "max_speed": player.max_speed,
+            "acceleration": player.acceleration,
+            "breaks": player.breaks,
+            "turn": player.turn,
+            "lab": player.lab,
+            # "rect": player.rect,
+            "time": 0,
+            "showTimer": self.game.showTimer,
+            "posTimer": self.game.positionTimer,
+            "win": self.win,
+            "name": self.winner,
+            "connection": self.init.connections
+        }
+        db.child(name).set(data)
+
         self.init.addPlayer(clientsList)
+
         start_time = time.time()
         conn.send(str.encode(str(_id)))
         restart = False
