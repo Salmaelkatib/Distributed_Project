@@ -22,7 +22,10 @@ class server:
         self.start = timer()
         self.game = Game()
         self.game_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # this will allow you to immediately restart a TCP server
         self.game_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.chat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.chat_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.HOST_NAME = socket.gethostname()
         self.SERVER_IP = socket.gethostbyname(self.HOST_NAME)
         self.init = IntializeGame()
@@ -32,33 +35,30 @@ class server:
         self.winner = None
         self.playersId = [1, 2, 3, 4]
         self.func()
-        self.create_listening_Chatserver()
 
-    # try to connect to chat socket
-    def create_listening_Chatserver(self):
-        self.chat_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        ip = '192.168.130.1'
-        port = 10319
-        # this will allow you to immediately restart a TCP server
-        self.chat_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.chat_socket.bind((ip, port))
-        self.chat_socket.listen(2)
-        print("Chat socket is waiting for connection")
-        self.receive_messages_in_a_new_thread()
 
-    # try to connect to server socket
     def func(self):
         try:
-            self.game_socket.bind((self.SERVER_IP, 420))
+            # try to connect to chat socket
+            self.chat_socket.bind((self.SERVER_IP , 430))
+            self.game_socket.bind((self.SERVER_IP , 420))
+
         except socket.error as e:
             print(str(e))
             print("[SERVER] Server could not start")
             quit()
+        self.chat_socket.listen(2)
         self.game_socket.listen(2)
         print(f"[SERVER] Server Started with local ip {self.SERVER_IP}")
-        print("Game socket is waiting for connection")
+        print("Chat socket is waiting for connection")
 
         while True:
+            client = so, (ip, port) = self.chat_socket.accept()
+            self.add_to_clients_list(client)
+            print('Connected to ', ip, ':', str(port))
+            t2 = threading.Thread(target=self.receive_messages, args=(so,))
+            t2.start()
+
             host, addr = self.game_socket.accept()
             print("[CONNECTION] Connected to:", addr)
 
@@ -107,7 +107,6 @@ class server:
 
                 if key[4] == 'False':
                     run = False
-
 
                 if self.init.connections == self.config.playersNumer:
 
@@ -195,14 +194,6 @@ class server:
             if socket is not senders_socket:
                 socket.sendall(self.last_received_message.encode('utf-8'))
 
-    def receive_messages_in_a_new_thread(self):
-        while True:
-            client = so, (ip, port) = self.chat_socket.accept()
-            self.add_to_clients_list(client)
-            print('Connected to ', ip, ':', str(port))
-            t2 = threading.Thread(target=self.receive_messages, args=(so,))
-            t2.start()
-        # add a new client
 
     def add_to_clients_list(self, client):
         if client not in self.clients_list:

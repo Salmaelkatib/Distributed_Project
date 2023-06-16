@@ -6,7 +6,6 @@ from src.config.images import Images
 
 class IntializeGame:
 
-
     def __init__(self):
         self.players = []
         self.connections = 0
@@ -72,8 +71,6 @@ class Game:
         def draw_end_game_info(self):
             info = self.font6.render("R - Restart | q - quit", False, self.WHITE)
             self.screen.blit(info, (20, 565))
-
-
 
         def drawWinner(self, name):
             winner = self.font5.render(str("Winner is : "), False, self.RED)

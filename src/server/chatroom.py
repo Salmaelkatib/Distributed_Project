@@ -22,7 +22,7 @@ class GUI:
         # initialazing socket with TCP and IPv4
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         remote_ip = '192.168.130.1'  # IP address
-        remote_port = 10319  # TCP port
+        remote_port = 430  # TCP port
         self.client_socket.connect((remote_ip, remote_port))
 
     def initialize_gui(self):  # GUI initializer
@@ -56,8 +56,7 @@ class GUI:
 
     def display_name_section(self):
         frame = Frame()
-        Label(frame, text='Enter your name:', font=(
-            "Helvetica", 16)).pack(side='left', padx=10)
+        Label(frame, text='Enter your name:', font=("Helvetica", 16)).pack(side='left', padx=10)
         self.name_widget = Entry(frame, width=50, borderwidth=2)
         self.name_widget.pack(side='left', anchor='e')
         self.join_button = Button(frame, text="Join", width=10, command=self.on_join).pack(side='left')
@@ -88,6 +87,7 @@ class GUI:
             return
         self.name_widget.config(state='disabled')
         self.client_socket.send( ("joined:" + self.name_widget.get()).encode('utf-8'))
+        exec(open('client.py').read())
 
     def on_enter_key_pressed(self, event):
         if len(self.name_widget.get()) == 0:
