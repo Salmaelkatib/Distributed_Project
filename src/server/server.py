@@ -4,8 +4,6 @@ from timeit import default_timer as timer
 import socket
 import threading
 import _pickle as pickle
-
-
 import pygame
 
 from src.server.database import firebase
@@ -42,7 +40,7 @@ class server:
 
     def func(self):
         try:
-            # try to connect to chat socket
+            # try to connect to chat and game socket
             self.chat_socket.bind((self.SERVER_IP , 430))
             self.game_socket.bind((self.SERVER_IP , 420))
 
@@ -74,38 +72,53 @@ class server:
     def threaded_client(self, conn, _id):
         data = conn.recv(16)
         name = data.decode("utf-8")
-        print("[LOG]", name, "connected to the server.")
-        #search db for same ip if found then create new player , get all db info regarding player , assign values
 
-        player = Player(self.game, self, self.init, self.config, _id, None, self.config.player['speed'],
-                        self.config.player['turn'])
+        # If a client has connected before then retreive his data from database
+        players =db.child("Players").shallow().get().val()
+        Flag = False
+        if players:
+            for i in players:
+                if i == name:
+                    Flag = True
+                    p = db.child("Players").child(name).get().val()
+                    player = Player(self.game, self, self.init, self.config, p["id"], p["position"], p["max_speed"], p["turn"])
+                    self.game.players.append(player)
+                    clientsList = ClientInfo(self.config, player.id, player.position, p["angle"], p["speed"],
+                                             p["max_speed"], p["acceleration"], p["breaks"], p["turn"], p["lab"], player.rect, 0,
+                                             self.game.showTimer, self.game.positionTimer, p["win"], self.winner,self.init.connections)
+                    self.init.addPlayer(clientsList)
 
-        self.game.players.append(player)
-        clientsList = ClientInfo(self.config, player.id, player.position, player.angle, player.speed, player.max_speed,
-                                 player.acceleration, player.breaks, player.turn, player.lab, player.rect, 0,
-                                 self.game.showTimer, self.game.positionTimer, self.win, self.winner,
-                                 self.init.connections)
-        data = {
-            "id": player.id,
-            "position": player.position,
-            "angle": player.angle,
-            "speed": player.speed,
-            "max_speed": player.max_speed,
-            "acceleration": player.acceleration,
-            "breaks": player.breaks,
-            "turn": player.turn,
-            "lab": player.lab,
-            # "rect": player.rect,
-            "time": 0,
-            "showTimer": self.game.showTimer,
-            "posTimer": self.game.positionTimer,
-            "win": self.win,
-            "name": self.winner,
-            "connection": self.init.connections
-        }
-        db.child(name).set(data)
+        if not Flag:
+            # If a new client is connected
+            print("[LOG]", name, "connected to the server.")
+            player = Player(self.game, self, self.init, self.config, _id, None, self.config.player['max_speed'],self.config.player['turn'])
+            self.game.players.append(player)
 
-        self.init.addPlayer(clientsList)
+            clientsList = ClientInfo(self.config, player.id, player.position, player.angle, player.speed, player.max_speed,
+                                     player.acceleration, player.breaks, player.turn, player.lab, player.rect, 0,
+                                     self.game.showTimer, self.game.positionTimer, self.win, self.winner,
+                                     self.init.connections)
+            data = {
+                "id": player.id,
+                "position": player.position,
+                "angle": player.angle,
+                "speed": player.speed,
+                "max_speed": player.max_speed,
+                "acceleration": player.acceleration,
+                "breaks": player.breaks,
+                "turn": player.turn,
+                "lab": player.lab,
+                # "rect": player.rect,
+                "time": 0,
+                "showTimer": self.game.showTimer,
+                "posTimer": self.game.positionTimer,
+                "win": self.win,
+                "winner": self.winner,
+                "connection": self.init.connections
+            }
+            db.child("Players").child(name).set(data)
+
+            self.init.addPlayer(clientsList)
 
         start_time = time.time()
         conn.send(str.encode(str(_id)))
@@ -152,11 +165,50 @@ class server:
                                              player.acceleration, player.breaks, player.turn, player.lab,
                                              player.rect, self.time - player.bonusTime, self.game.showTimer,
                                              self.game.positionTimer, self.win, self.winner, self.init.connections)
+                    updated_data = {
+                        "id": player.id,
+                        "position": player.position,
+                        "angle": player.angle,
+                        "speed": player.speed,
+                        "max_speed": player.max_speed,
+                        "acceleration": player.acceleration,
+                        "breaks": player.breaks,
+                        "turn": player.turn,
+                        "lab": player.lab,
+                        # "rect": player.rect,
+                        "time": self.time - player.bonusTime,
+                        "showTimer": self.game.showTimer,
+                        "posTimer": self.game.positionTimer,
+                        "win": self.win,
+                        "winner": self.winner,
+                        "connection": self.init.connections
+                    }
+                    db.child("Players").child(name).update(updated_data)
+
                 else:
                     clientsList.updateValues(player.id, player.position, player.angle, player.speed, player.max_speed,
                                              player.acceleration, player.breaks, player.turn, player.lab,
                                              player.rect, 0, False,
                                              None, self.win, self.winner, self.init.connections)
+                    updated_data = {
+                        "id": player.id,
+                        "position": player.position,
+                        "angle": player.angle,
+                        "speed": player.speed,
+                        "max_speed": player.max_speed,
+                        "acceleration": player.acceleration,
+                        "breaks": player.breaks,
+                        "turn": player.turn,
+                        "lab": player.lab,
+                        # "rect": player.rect,
+                        "time": 0,
+                        "showTimer": False,
+                        "posTimer": None,
+                        "win": self.win,
+                        "winner": self.winner,
+                        "connection": self.init.connections
+                    }
+                    db.child("Players").child(name).update(updated_data)
 
             elif data.split(" ")[0] == "time":
                 start_time = pygame.time.get_ticks()
@@ -165,6 +217,25 @@ class server:
                                          player.acceleration, player.breaks, player.turn, player.lab, player.rect,
                                          self.time - player.bonusTime, self.game.showTimer, self.game.positionTimer,
                                          self.win, self.winner, self.init.connections)
+                updated_data = {
+                    "id": player.id,
+                    "position": player.position,
+                    "angle": player.angle,
+                    "speed": player.speed,
+                    "max_speed": player.max_speed,
+                    "acceleration": player.acceleration,
+                    "breaks": player.breaks,
+                    "turn": player.turn,
+                    "lab": player.lab,
+                    # "rect": player.rect,
+                    "time": self.time - player.bonusTime,
+                    "showTimer": self.game.showTimer,
+                    "posTimer": self.game.positionTimer,
+                    "win": self.win,
+                    "winner": self.winner,
+                    "connection": self.init.connections
+                }
+                db.child("Players").child(name).update(updated_data)
 
             elif data.split(" ")[0] == "restart":
                 restart = True
@@ -179,12 +250,50 @@ class server:
                                          player.acceleration, player.breaks, player.turn, player.lab, player.rect,
                                          self.time - player.bonusTime, self.game.showTimer, self.game.positionTimer,
                                          self.win, self.winner, self.init.connections)
+                updated_data = {
+                    "id": player.id,
+                    "position": player.position,
+                    "angle": player.angle,
+                    "speed": player.speed,
+                    "max_speed": player.max_speed,
+                    "acceleration": player.acceleration,
+                    "breaks": player.breaks,
+                    "turn": player.turn,
+                    "lab": player.lab,
+                    # "rect": player.rect,
+                    "time": self.time - player.bonusTime,
+                    "showTimer": self.game.showTimer,
+                    "posTimer": self.game.positionTimer,
+                    "win": self.win,
+                    "winner": self.winner,
+                    "connection": self.init.connections
+                }
+                db.child("Players").child(name).update(updated_data)
 
             else:
                 clientsList.updateValues(player.id, player.position, player.angle, player.speed, player.max_speed,
                                          player.acceleration, player.breaks, player.turn, player.lab, player.rect,
                                          0, self.game.showTimer, self.game.positionTimer, self.win, self.winner,
                                          self.init.connections)
+                updated_data = {
+                    "id": player.id,
+                    "position": player.position,
+                    "angle": player.angle,
+                    "speed": player.speed,
+                    "max_speed": player.max_speed,
+                    "acceleration": player.acceleration,
+                    "breaks": player.breaks,
+                    "turn": player.turn,
+                    "lab": player.lab,
+                    # "rect": player.rect,
+                    "time": 0,
+                    "showTimer": self.game.showTimer,
+                    "posTimer": self.game.positionTimer,
+                    "win": self.win,
+                    "winner": self.winner,
+                    "connection": self.init.connections
+                }
+                db.child("Players").child(name).update(updated_data)
 
 
             conn.send(pickle.dumps(self.init.players))

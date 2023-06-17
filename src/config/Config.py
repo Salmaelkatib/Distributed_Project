@@ -17,9 +17,9 @@ class Config:
             }
         }
         player = {
-            'speed': 10,
-            'turn': 7,
-            'acceleration': 0.5,
+            'speed': 2000,
+            'turn': 50,
+            'acceleration': 5,
             'breaks': 0.05,
             'position': {
                 '1': (508, 180),

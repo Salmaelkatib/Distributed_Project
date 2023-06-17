@@ -18,14 +18,13 @@ class Player:
             self.position = position
         self.angle = 0
         self.speed = 0
-        self.max_speed = max_speed / 2
+        self.max_speed = 100
         self.acceleration = self.config.player['acceleration']
         self.breaks = self.config.player['breaks']
-        self.turn = turn / 2
+        self.turn = 25
         self.mask = None
         self.create_car()
-        self.rect = pygame.transform.rotate(self.car, self.angle).get_rect(
-            center=self.car.get_rect(topleft=self.position).center)
+        self.rect = pygame.transform.rotate(self.car, self.angle).get_rect(center=self.car.get_rect(topleft=self.position).center)
         self.rotated_image = None
         self.image = None
         self.lab = 0
@@ -95,9 +94,9 @@ class Player:
 
     def rotate(self, turn):
         if turn == 1:
-            self.angle += self.turn - self.speed / 3
+            self.angle += self.turn - self.speed / 2
         if turn == 0:
-            self.angle -= self.turn - self.speed / 3
+            self.angle -= self.turn - self.speed / 2
 
     def drive(self, way):
         if way == 1:
@@ -118,7 +117,7 @@ class Player:
         self.move()
 
     def reduce(self):
-        self.speed = max(self.speed - self.acceleration / 6, 0)
+        self.speed = max(self.speed - self.acceleration / 3, 0)
         self.move(True)
 
     def move(self, r=False):
