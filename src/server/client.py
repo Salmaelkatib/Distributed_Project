@@ -86,13 +86,14 @@ class GUI:
 
     def on_join(self):
         name = self.name_widget.get()
-        g = StartGame()
+        self.g = StartGame() # connection is established
         if len(name) == 0:
             messagebox.showerror("Enter your name", "Enter your name to send a message")
             return
         self.name_widget.config(state='disabled')
+        self.client_socket.send(name.encode('utf-8'))
         self.client_socket.send( ("joined:" + name).encode('utf-8'))
-        t3 = threading.Thread(target=g.ConnectGame, args=(name,))
+        t3 = threading.Thread(target=self.g.ConnectGame, args=(name,))
         t3.start()
 
     def on_enter_key_pressed(self, event):
@@ -125,6 +126,10 @@ class GUI:
 ###################### Game #######################################################
 
 class StartGame:
+
+    server = network.Network()
+    run = True
+
     def restartMoves(self):
         keys = pygame.key.get_pressed()
         move = [False, False]
@@ -158,17 +163,14 @@ class StartGame:
 
     def ConnectGame(self ,name):
         pygame.init()
-        server = network.Network()
         config = Config()
-
-        current_id = server.connect(name)
-        players = server.send("get")
+        current_id = self.server.connect(name)
+        players = self.server.send("get")
 
         game = Game()
         game.screen = pygame.display.set_mode((game.assets.width, game.assets.height))
         pygame.display.set_caption("Car Racing")
         assets = [(game.assets.track, (0, 0)), (game.assets.start, (502, 160)), (game.assets.borders, (0, 0))]
-        run = True
         game.constDraw()
         start = True
         win = False
@@ -176,12 +178,12 @@ class StartGame:
 
         cur_players = next((x for x in players if x.id == current_id))
 
-        while run:
+        while self.run:
 
             pygame.time.Clock().tick(config.FPS)
 
             if start and cur_players.connection == config.playersNumer:
-                players = server.send("temp")
+                players = self.server.send("temp")
                 cur_players = next((x for x in players if x.id == current_id))
                 start_ticks = pygame.time.get_ticks()
                 game.constDraw()
@@ -196,11 +198,11 @@ class StartGame:
                     pygame.display.update()
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
-                            run = False
+                            self.run = False
                 game.constDraw()
 
                 data = "time"
-                players = server.send(data)
+                players = self.server.send(data)
                 start = False
 
             keys = pygame.key.get_pressed()
@@ -209,7 +211,7 @@ class StartGame:
             for m in self.moves():
                 data += " " + str(m)
 
-            players = server.send(data)
+            players = self.server.send(data)
             if not players:
                 break
             cur_players = next((x for x in players if x.id == current_id))
@@ -222,27 +224,36 @@ class StartGame:
                 game.drawWinner(cur_players.name)
                 keys = self.restartMoves()
                 if keys[0]:
-                    players = server.send("restart")
+                    players = self.server.send("restart")
                     start = True
 
                 if keys[1]:
-                    run = False
+                    self.run = False
                 game.draw_end_game_info()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    run = False
+                    self.run = False
 
             pygame.display.update()
 
-        server.disconnect()
+        # If client close game
+        self.server.disconnect()
         pygame.quit()
         quit()
+
 
 if __name__ == '__main__':
     root = Tk()  # Chat application window
     gui = GUI(root)
-    root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
+
+    # If client closed chat window
+    def on_close_window():
+        gui.g.run=False
+        gui.g.server.disconnect()
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_close_window)
     root.mainloop()
 
 

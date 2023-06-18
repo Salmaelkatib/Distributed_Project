@@ -49,7 +49,7 @@ class server:
             print("[SERVER] Server could not start")
             quit()
         self.chat_socket.listen(2)
-        self.game_socket.listen(2)
+        self.game_socket.listen()
         print(f"[SERVER] Server Started with local ip {self.SERVER_IP}")
         print("Chat socket is waiting for connection")
 
@@ -81,7 +81,7 @@ class server:
                 if i == name:
                     Flag = True
                     p = db.child("Players").child(name).get().val()
-                    player = Player(self.game, self, self.init, self.config, p["id"], p["position"], p["max_speed"], p["turn"])
+                    player = Player(self.game, self, self.init, self.config, _id, p["position"], p["max_speed"], p["turn"])
                     self.game.players.append(player)
                     clientsList = ClientInfo(self.config, player.id, player.position, p["angle"], p["speed"],
                                              p["max_speed"], p["acceleration"], p["breaks"], p["turn"], p["lab"], player.rect, 0,
@@ -91,7 +91,7 @@ class server:
         if not Flag:
             # If a new client is connected
             print("[LOG]", name, "connected to the server.")
-            player = Player(self.game, self, self.init, self.config, _id, None, self.config.player['max_speed'],self.config.player['turn'])
+            player = Player(self.game, self, self.init, self.config, _id, None, self.config.player['speed'],self.config.player['turn'])
             self.game.players.append(player)
 
             clientsList = ClientInfo(self.config, player.id, player.position, player.angle, player.speed, player.max_speed,
@@ -147,7 +147,7 @@ class server:
                 if key[4] == 'False':
                     run = False
 
-                if self.init.connections == self.config.playersNumer:
+                if self.init.connections <= self.config.playersNumer:
 
                     player.onServer(key)
                     #run = player.onServer(key)
@@ -308,10 +308,15 @@ class server:
         if clientsList in self.init.players:
             self.init.removePlayer(clientsList)  # remove client information from players list
             self.game.players.remove(player)
+
+        # remove from database
+        db.child("Players").child(name).remove()
         conn.close()  # close connection
 
     # function to receive new msgs
     def receive_messages(self, so):
+        data = so.recv(16)
+        name = data.decode("utf-8")
         while True:
             # initialize a buffer to receive clients msgs
             incoming_buffer = so.recv(256)
@@ -320,6 +325,8 @@ class server:
             self.last_received_message = incoming_buffer.decode('utf-8')
             # send to all clients
             self.broadcast_to_all_clients(so)
+        # remove from database
+        db.child("Players").child(name).remove()
         so.close()
 
     # broadcast the message to all clients
