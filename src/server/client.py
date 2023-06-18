@@ -17,6 +17,7 @@ class GUI:
         self.name_widget = None
         self.enter_text_widget = None
         self.join_button = None
+        self.connected = False
         self.initialize_socket()
         self.initialize_gui()
         self.listen_for_incoming_messages_in_a_thread()
@@ -85,14 +86,28 @@ class GUI:
         frame.pack(side='top')
 
     def on_join(self):
+
+        if self.connected == True :
+            name = self.name_widget.get()
+            self.g = StartGame() # connection is established
+            if len(name) == 0:
+                messagebox.showerror("Enter your name", "Enter your name to send a message")
+                return
+            self.name_widget.config(state='disabled')
+            self.client_socket.send(name.encode('utf-8'))
+            self.client_socket.send( ("joined:" + name).encode('utf-8'))
+            t3 = threading.Thread(target=self.g.ConnectGame, args=(name,))
+            t3.start()
+
         name = self.name_widget.get()
         self.g = StartGame() # connection is established
+        self.connected = True
         if len(name) == 0:
             messagebox.showerror("Enter your name", "Enter your name to send a message")
             return
         self.name_widget.config(state='disabled')
         self.client_socket.send(name.encode('utf-8'))
-        self.client_socket.send( ("joined:" + name).encode('utf-8'))
+        self.client_socket.send(("joined:" + name).encode('utf-8'))
         t3 = threading.Thread(target=self.g.ConnectGame, args=(name,))
         t3.start()
 
@@ -127,8 +142,9 @@ class GUI:
 
 class StartGame:
 
-    server = network.Network()
-    run = True
+    def __init__(self):
+        self.server = network.Network()
+        self.run = True
 
     def restartMoves(self):
         keys = pygame.key.get_pressed()
