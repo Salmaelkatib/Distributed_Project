@@ -6,6 +6,8 @@ import pygame
 import threading  # for multiple proccess
 import src.server.network as network
 
+oncloseFlag = False
+
 ################# Chatroom ###################################################
 class GUI:
     client_socket = None
@@ -117,11 +119,11 @@ class GUI:
         self.enter_text_widget.delete(1.0, 'end')
         return 'break'
 
-    def on_close_window(self):
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.root.destroy()
-            self.client_socket.close()
-            exit(0)
+    # def on_close_window(self):
+    #     if messagebox.askokcancel("Quit", "Do you want to quit?"):
+    #         self.root.destroy()
+    #         self.client_socket.close()
+    #         exit(0)
 
 ###################### Game #######################################################
 
@@ -231,13 +233,14 @@ class StartGame:
                     self.run = False
                 game.draw_end_game_info()
 
+            # If client close game
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.run = False
+                    oncloseFlag=True
 
             pygame.display.update()
 
-        # If client close game
         self.server.disconnect()
         pygame.quit()
         quit()
@@ -250,6 +253,7 @@ if __name__ == '__main__':
     # If client closed chat window
     def on_close_window():
         gui.g.run=False
+        oncloseFlag=True
         gui.g.server.disconnect()
         root.destroy()
 

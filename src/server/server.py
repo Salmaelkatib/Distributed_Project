@@ -12,6 +12,7 @@ from src.config.Config import Config
 from src.server.game import Game , IntializeGame
 from src.server.player import Player
 from src.server.clientInfo import ClientInfo
+from src.server.client import oncloseFlag
 
 db=firebase.database()
 class server:
@@ -310,7 +311,8 @@ class server:
             self.game.players.remove(player)
 
         # remove from database
-        db.child("Players").child(name).remove()
+        if oncloseFlag:
+            db.child("Players").child(name).remove()
         conn.close()  # close connection
 
     # function to receive new msgs
@@ -325,8 +327,10 @@ class server:
             self.last_received_message = incoming_buffer.decode('utf-8')
             # send to all clients
             self.broadcast_to_all_clients(so)
+
         # remove from database
-        db.child("Players").child(name).remove()
+        if oncloseFlag:
+            db.child("Players").child(name).remove()
         so.close()
 
     # broadcast the message to all clients
