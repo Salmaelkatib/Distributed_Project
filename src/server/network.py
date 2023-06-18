@@ -1,24 +1,25 @@
 from src.config.Config import Config
 import socket
 import _pickle as pickle
+import time
 
 
 class Network:
 
     def __init__(self):
+
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.config = Config()
-        self.host = "192.168.32.1"
+        self.host = "3.85.99.21"
         self.port = 420
         self.addr = (self.host, self.port)
-
 
     def connect(self, name):
 
         self.client.connect(self.addr)
         self.client.send(str.encode(name))
         val = self.client.recv(8)
-        return int(val.decode()) # can be int because will be an int id
+        return int(val.decode())  # can be int because will be an int id
 
     def disconnect(self):
 
@@ -32,7 +33,7 @@ class Network:
             else:
                 self.client.send(str.encode(data))
 
-            reply = self.client.recv(2048*8)
+            reply = self.client.recv(2048 * 8)
 
             try:
                 reply = pickle.loads(reply)

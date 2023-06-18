@@ -24,7 +24,7 @@ class GUI:
     def initialize_socket(self):
         # initialazing socket with TCP and IPv4
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        remote_ip = '192.168.32.1'  # IP address
+        remote_ip = '3.85.99.21'  # IP address
         remote_port = 430  # TCP port
         self.client_socket.connect((remote_ip, remote_port))
 
