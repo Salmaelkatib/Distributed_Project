@@ -6,8 +6,6 @@ import pygame
 import threading  # for multiple proccess
 import src.server.network as network
 
-oncloseFlag = False
-
 ################# Chatroom ###################################################
 class GUI:
     client_socket = None
@@ -26,7 +24,7 @@ class GUI:
     def initialize_socket(self):
         # initialazing socket with TCP and IPv4
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        remote_ip = '192.168.130.1'  # IP address
+        remote_ip = '192.168.32.1'  # IP address
         remote_port = 430  # TCP port
         self.client_socket.connect((remote_ip, remote_port))
 
@@ -237,7 +235,8 @@ class StartGame:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.run = False
-                    oncloseFlag=True
+                    self.server.send("Quit")
+
 
             pygame.display.update()
 
@@ -253,9 +252,10 @@ if __name__ == '__main__':
     # If client closed chat window
     def on_close_window():
         gui.g.run=False
-        oncloseFlag=True
+        gui.client_socket.send(("Quit").encode('utf-8'))
         gui.g.server.disconnect()
         root.destroy()
+
 
     root.protocol("WM_DELETE_WINDOW", on_close_window)
     root.mainloop()

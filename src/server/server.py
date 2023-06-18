@@ -12,7 +12,7 @@ from src.config.Config import Config
 from src.server.game import Game , IntializeGame
 from src.server.player import Player
 from src.server.clientInfo import ClientInfo
-from src.server.client import oncloseFlag
+
 
 db=firebase.database()
 class server:
@@ -271,6 +271,21 @@ class server:
                 }
                 db.child("Players").child(name).update(updated_data)
 
+            elif data.split(" ")[0] == "Quit":
+                print("[DISCONNECT] Name:", name, ", Client Id:", _id, "disconnected")
+                self.playersId.append(_id)
+                self.playersId.sort()
+                self.init.connections -= 1
+
+                if clientsList in self.init.players:
+                    self.init.removePlayer(clientsList)  # remove client information from players list
+                    self.game.players.remove(player)
+
+                db.child("Players").child(name).remove()
+
+
+
+
             else:
                 clientsList.updateValues(player.id, player.position, player.angle, player.speed, player.max_speed,
                                          player.acceleration, player.breaks, player.turn, player.lab, player.rect,
@@ -300,6 +315,8 @@ class server:
             conn.send(pickle.dumps(self.init.players))
             time.sleep(0.001)
 
+
+
         # When user disconnects
         print("[DISCONNECT] Name:", name, ", Client Id:", _id, "disconnected")
         self.playersId.append(_id)
@@ -309,10 +326,6 @@ class server:
         if clientsList in self.init.players:
             self.init.removePlayer(clientsList)  # remove client information from players list
             self.game.players.remove(player)
-
-        # remove from database
-        if oncloseFlag:
-            db.child("Players").child(name).remove()
         conn.close()  # close connection
 
     # function to receive new msgs
@@ -328,9 +341,9 @@ class server:
             # send to all clients
             self.broadcast_to_all_clients(so)
 
-        # remove from database
-        if oncloseFlag:
-            db.child("Players").child(name).remove()
+            if self.last_received_message.split(" ")[0] == "Quit":
+             db.child("Players").child(name).remove()
+
         so.close()
 
     # broadcast the message to all clients
